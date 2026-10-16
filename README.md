@@ -30,7 +30,8 @@ installs it for you:
 1. Install Signal Companion (homebrew store, or the `PPSA69426` folder from its
    [release](https://github.com/Marice/ps5-signal-companion/releases/latest) in `/data/homebrew/`).
 2. Open it and choose **Start it** when it says ps5-signal is not running.
-3. Optional: switch on **Start with ps5-autoloader** on its Status screen, so ps5-signal loads with every boot.
+3. Optional: switch on **Start with ps5-autoloader** on its Status screen, so ps5-signal loads with every boot
+   ([ps5-autoloader](https://github.com/itsPLK/ps5-y2jb-autoloader) by itsPLK).
 4. Choose the colour and edit the startup tune and light show in the app.
 
 To update, install the new app and choose **Restart ps5-signal**. The rest of this section is for loading
@@ -38,7 +39,7 @@ ps5-signal yourself.
 
 ## Running it
 
-1. Send `ps5-signal.elf` to the ELF loader (etaHEN: port 9021), or load it with your autoloader at start-up.
+1. Send `ps5-signal.elf` to the ELF loader (etaHEN: port 9021), or add it to [ps5-autoloader](https://github.com/itsPLK/ps5-y2jb-autoloader) to load it at start-up.
 2. It plays the startup sequence from `/data/ps5-signal/config.json`. When the file doesn't exist it writes this
    default: the tune *Shave and a Haircut* (ta, ta-ta ta ta ... ta TAA), a run through the blue, white and amber
    LEDs and their mixes, and then the light keeps a purple (blue 255, white 80, amber 200).
@@ -190,3 +191,4 @@ GPL-3.0-or-later ([LICENSE](LICENSE)).
   [PS5-Suite](https://github.com/manos555555/PS5-Suite) by manos555555. Its code has no licence, so none of it is
   copied here; ps5-signal implements those findings itself.
 - [PS5 payload SDK](https://github.com/ps5-payload-dev/sdk) by John Törnblom
+- [ps5-autoloader](https://github.com/itsPLK/ps5-y2jb-autoloader) by itsPLK, which loads ps5-signal with the rest of a payload chain at start-up

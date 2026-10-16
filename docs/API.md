@@ -8,7 +8,7 @@ This guide is for developers of payloads, game ports and homebrew apps.
 
 ## Before you start
 
-- **ps5-signal must run.** The player starts it with their ELF loader, ps5-autoloader or the Signal Companion app.
+- **ps5-signal must run.** The player starts it with their ELF loader, [ps5-autoloader](https://github.com/itsPLK/ps5-y2jb-autoloader) or the Signal Companion app.
   Always check that it answers (see [Is it running?](#is-it-running)). If it does not answer, carry on without
   signals. Do not fail.
 - **Only on the console.** The service listens on `127.0.0.1:9150`. Code on the console can reach it; a PC cannot

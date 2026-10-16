@@ -166,7 +166,8 @@ static void handle_led(int fd, const json_document *doc) {
         respond_error(fd, 400, "Bad Request", "repeat must be 1-5");
         return;
     }
-    if (!patterns_leds(doc, json_member(doc, root, "pattern"), steps, &count)) {
+    if (!patterns_leds(doc, json_member(doc, root, "pattern"), steps, &count) ||
+        patterns_led_ms(steps, count) * repeat > PLAYER_MAX_TOTAL_MS) {
         respond_error(fd, 400, "Bad Request", "pattern: " LED_STEPS_RULE);
         return;
     }

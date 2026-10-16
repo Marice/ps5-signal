@@ -26,7 +26,7 @@ Firmware 9.00 or newer.
 
 1. Send `ps5-signal.elf` to the ELF loader (etaHEN: port 9021), or load it with your autoloader at start-up.
 2. It plays the startup sequence from `/data/ps5-signal/config.json`. When the file doesn't exist it writes this
-   default: the tune *Shave and a Haircut* (ta, ta-ta ta ta ... TAA TAA), a run through the blue, white and amber
+   default: the tune *Shave and a Haircut* (ta, ta-ta ta ta ... ta ta), a run through the blue, white and amber
    LEDs and their mixes, and then the light keeps a purple (blue 255, white 80, amber 200).
 
    ```json
@@ -34,8 +34,8 @@ Firmware 9.00 or newer.
      "startup": {
        "beep": [
          { "tone": 1, "pause_ms": 300 }, { "tone": 1, "pause_ms": 150 }, { "tone": 1, "pause_ms": 150 },
-         { "tone": 1, "pause_ms": 300 }, { "tone": 1, "pause_ms": 600 }, { "tone": 3, "pause_ms": 650 },
-         { "tone": 3 }
+         { "tone": 1, "pause_ms": 300 }, { "tone": 1, "pause_ms": 600 }, { "tone": 1, "pause_ms": 300 },
+         { "tone": 1 }
        ],
        "led": [
          { "color": "blue", "ms": 250 }, { "color": "white", "ms": 250 }, { "color": "orange", "ms": 250 },
@@ -53,7 +53,7 @@ Firmware 9.00 or newer.
      system's own. The service sets it at start, sets it again when the system takes the LED back (checked every
      2 seconds), and returns to it after every LED sequence.
 
-   - The steps follow the API's rules below, except that the startup tune may have up to 16 beeps.
+   - The steps follow the API's rules below.
    - Leave `beep` or `led` out, or make it `[]`, to turn that part off.
    - A file that isn't valid is left as it is and nothing plays at start-up; the log says what is wrong.
 3. A second copy stops at once: the port is in use. The log goes to the kernel log, prefixed `[ps5-signal]`.
@@ -73,9 +73,9 @@ All requests go to `http://127.0.0.1:9150`. Bodies are JSON objects; answers are
 | `GET /config` | | `config.json` as it is (the default when there is none) |
 | `PUT /config` | the whole config | Checked like the startup config, written, and its `led_color` held at once; `400` with the reason when it isn't valid (the file is then left as it is) |
 
-**Beeps.** 1-6 steps. `tone` 0-3; `pause_ms` 100-2000 (default 200), the time until the next beep.
+**Beeps.** 1-24 steps, the pauses 10 seconds at most in all. `tone` 0-3; `pause_ms` 100-2000 (default 200), the time until the next beep.
 
-**LED steps.** 1-32 steps, each with `ms` 250-10000 (how long it shows) and one of:
+**LED steps.** 1-24 steps, 10 seconds at most in all (times `repeat`), each with `ms` 250-10000 (how long it shows) and one of:
 
 | | |
 | --- | --- |
@@ -138,7 +138,7 @@ curl http://<console>:9150/indicator/raw
 
 - **Local only.** The service runs with a system process's rights. It listens on `127.0.0.1`, so only software
   on the console can use it.
-- **Abuse limits.** At most 6 beeps per request, 100-2000 ms apart, one sequence of each kind at a time, and the
+- **Abuse limits.** At most 24 beeps and 10 seconds per request, 100-2000 ms apart, one sequence of each kind at a time, and the
   per-minute limits above.
 - **Flash wear is unknown.** The beeper and brightness settings survive a restart. The research says the ICC holds
   them until the console loses power, which points to memory that stays powered rather than flash, and the ICC has

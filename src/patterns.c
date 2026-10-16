@@ -26,7 +26,10 @@ bool patterns_beeps(const json_document *doc, const json_node *array, int max, b
         }
         (*count)++;
     }
-    return *count > 0;
+    /* The last beep's pause is unused, so it doesn't count. */
+    int total = 0;
+    for (int i = 0; i + 1 < *count; i++) total += steps[i].pause_ms;
+    return *count > 0 && total <= PLAYER_MAX_TOTAL_MS;
 }
 
 /* A colour step: "color" by name, or the channels blue, white and amber (0-255, each 0 when left out). */
@@ -69,5 +72,11 @@ bool patterns_leds(const json_document *doc, const json_node *array, led_step *s
         if (!ok || !patterns_int(doc, step, "ms", PLAYER_MIN_LED_MS, PLAYER_MAX_LED_MS, -1, &s->ms)) return false;
         (*count)++;
     }
-    return *count > 0;
+    return *count > 0 && patterns_led_ms(steps, *count) <= PLAYER_MAX_TOTAL_MS;
+}
+
+int patterns_led_ms(const led_step *steps, int count) {
+    int total = 0;
+    for (int i = 0; i < count; i++) total += steps[i].ms;
+    return total;
 }

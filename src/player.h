@@ -5,11 +5,13 @@
 #include <stdbool.h>
 
 enum {
-    PLAYER_MAX_API_BEEPS = 6,     /* per /beep request (abuse protection) */
-    PLAYER_MAX_CONFIG_BEEPS = 16, /* the startup tune in config.json */
+    PLAYER_MAX_API_BEEPS = 24,    /* per /beep request */
+    PLAYER_MAX_CONFIG_BEEPS = 24, /* the startup tune in config.json */
     PLAYER_MIN_PAUSE_MS = 100,
     PLAYER_MAX_PAUSE_MS = 2000,
-    PLAYER_MAX_LED_STEPS = 32,
+    PLAYER_MAX_LED_STEPS = 24,
+    /* A beep sequence (its pauses) and a LED sequence (its steps, times repeat) last 10 seconds at most. */
+    PLAYER_MAX_TOTAL_MS = 10000,
     PLAYER_MAX_LED_REPEAT = 5,
     /* Each LED step may change a setting the console keeps, possibly in flash: a step lasts at least this long,
      * and LED changes are limited per minute. */

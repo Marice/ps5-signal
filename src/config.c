@@ -8,15 +8,15 @@
 #include <string.h>
 #include <sys/stat.h>
 
-/* Written when there is no config.json. The tune is "Shave and a Haircut" (ta, ta-ta ta ta ... TAA TAA); the light
+/* Written when there is no config.json. The tune is "Shave and a Haircut" (ta, ta-ta ta ta ... ta ta); the light
  * runs through the three LEDs and their mixes while it plays, and ends on the colour it then keeps. */
 static const char default_config[] =
     "{\n"
     "  \"startup\": {\n"
     "    \"beep\": [\n"
     "      { \"tone\": 1, \"pause_ms\": 300 }, { \"tone\": 1, \"pause_ms\": 150 }, { \"tone\": 1, \"pause_ms\": 150 },\n"
-    "      { \"tone\": 1, \"pause_ms\": 300 }, { \"tone\": 1, \"pause_ms\": 600 }, { \"tone\": 3, \"pause_ms\": 650 },\n"
-    "      { \"tone\": 3 }\n"
+    "      { \"tone\": 1, \"pause_ms\": 300 }, { \"tone\": 1, \"pause_ms\": 600 }, { \"tone\": 1, \"pause_ms\": 300 },\n"
+    "      { \"tone\": 1 }\n"
     "    ],\n"
     "    \"led\": [\n"
     "      { \"color\": \"blue\", \"ms\": 250 }, { \"color\": \"white\", \"ms\": 250 }, { \"color\": \"orange\", \"ms\": 250 },\n"

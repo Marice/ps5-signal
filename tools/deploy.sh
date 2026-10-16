@@ -4,7 +4,7 @@
 #   tools/deploy.sh ps5-signal-dev.elf  the development build
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-host=${PS5_HOST:-192.168.68.125}
+host=${PS5_HOST:?set PS5_HOST to the address of the console}
 port=${PS5_ELFLDR_PORT:-9021}
 payload=${1:-$root/ps5-signal.elf}
 python3 -I - "$host" "$port" "$payload" <<'PY'

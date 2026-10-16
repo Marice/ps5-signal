@@ -18,29 +18,34 @@ functions replaced by fakes (`tests/run-host-tests.sh`).
 | LED colour | three channels, 0-255 each: blue, white, amber; mixed for other shades | [PS5-Suite](https://github.com/manos555555/PS5-Suite) (`/dev/icc_indicator`) |
 
 There is no free RGB colour: the LED has blue, white and amber light only. The LED state holds a record per channel;
-a channel without a record in it is left as it is. Its layout differs between consoles, so the service writes it to
-the log at start (`indicator state`). Whether the LED has zones that can be lit separately is not known yet.
+each channel is a small program of steps (the system's own light fades this way). A colour is set by rewriting each
+channel as a single step that holds its level. Whether the LED has zones that can be lit separately is not known yet.
 Firmware 9.00 or newer.
 
 ## Running it
 
 1. Send `ps5-signal.elf` to the ELF loader (etaHEN: port 9021), or load it with your autoloader at start-up.
 2. It plays the startup sequence from `/data/ps5-signal/config.json`. When the file doesn't exist it writes this
-   default: the tune *beep.. beep. beep. beep beep... beep. beep* and the LED blue, white, blue.
+   default: the tune *Shave and a Haircut* (ta, ta-ta ta ta ... TAA TAA), a run through the blue, white and amber
+   LEDs and their mixes, and then the light keeps a purple (blue 255, white 80, amber 200).
 
    ```json
    {
      "startup": {
        "beep": [
-         { "tone": 1, "pause_ms": 400 }, { "tone": 1, "pause_ms": 200 }, { "tone": 1, "pause_ms": 200 },
-         { "tone": 1, "pause_ms": 100 }, { "tone": 1, "pause_ms": 600 }, { "tone": 1, "pause_ms": 200 },
-         { "tone": 1 }
+         { "tone": 1, "pause_ms": 300 }, { "tone": 1, "pause_ms": 150 }, { "tone": 1, "pause_ms": 150 },
+         { "tone": 1, "pause_ms": 300 }, { "tone": 1, "pause_ms": 600 }, { "tone": 3, "pause_ms": 300 },
+         { "tone": 3 }
        ],
        "led": [
-         { "color": "blue", "ms": 400 }, { "color": "white", "ms": 400 }, { "color": "blue", "ms": 400 }
+         { "color": "blue", "ms": 250 }, { "color": "white", "ms": 250 }, { "color": "orange", "ms": 250 },
+         { "color": "blue", "ms": 250 }, { "color": "white", "ms": 250 }, { "color": "orange", "ms": 250 },
+         { "blue": 255, "white": 255, "ms": 300 }, { "white": 255, "amber": 255, "ms": 300 },
+         { "blue": 255, "amber": 255, "ms": 300 }, { "color": "off", "ms": 250 },
+         { "blue": 255, "white": 80, "amber": 200, "ms": 800 }
        ]
      },
-     "led_color": null
+     "led_color": { "blue": 255, "white": 80, "amber": 200 }
    }
    ```
 

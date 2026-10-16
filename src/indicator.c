@@ -3,7 +3,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <pthread.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -29,12 +28,37 @@ static bool call(unsigned long request, void *argument) {
     return result == 0;
 }
 
-/* A channel's record: the records sit at no fixed place in the state, so look for (channel, 1). */
-static int record(const uint8_t *state, uint8_t channel) {
-    for (int i = 2; i + 5 < INDICATOR_STATE_SIZE; i++) {
-        if (state[i] == channel && state[i + 1] == 0x01) return i;
+/* The state: a 4-byte header (00 00, then the channel count as u16) and a 42-byte block per channel. A block
+ * is a small program: { id, step count, then 5-byte steps { type, level, 3 bytes of timing } }. The system's
+ * own light runs programs of several steps (a fade); a held colour is one step per channel, written in the
+ * form a one-step block has on the console: { 02, level, 05, 02, 00 }. */
+#define BLOCK_START 4
+#define BLOCK_SIZE 42
+#define STEP_SIZE 5
+
+/* Where a channel's block starts, or -1. */
+static int block(const uint8_t *state, uint8_t channel) {
+    int count = state[2] | state[3] << 8;
+    for (int i = 0; i < count && BLOCK_START + (i + 1) * BLOCK_SIZE <= INDICATOR_STATE_SIZE; i++) {
+        int at = BLOCK_START + i * BLOCK_SIZE;
+        if (state[at] == channel) return at;
     }
     return -1;
+}
+
+/* A block's level: its last step's, the level the program ends on. */
+static int block_level(const uint8_t *state, int at) {
+    int steps = state[at + 1];
+    if (steps < 1 || 2 + steps * STEP_SIZE > BLOCK_SIZE) return -1;
+    return state[at + 2 + (steps - 1) * STEP_SIZE + 1];
+}
+
+/* Rewrites a block as one step that holds the level. */
+static void hold_level(uint8_t *state, int at, int level) {
+    uint8_t channel = state[at];
+    memset(state + at, 0, BLOCK_SIZE);
+    const uint8_t step[2 + STEP_SIZE] = { channel, 1, 0x02, (uint8_t)level, 0x05, 0x02, 0x00 };
+    memcpy(state + at, step, sizeof(step));
 }
 
 bool indicator_read(uint8_t state[INDICATOR_STATE_SIZE]) {
@@ -61,21 +85,10 @@ bool indicator_enable(bool on) {
     return ok;
 }
 
-/* The state as hex in the log, 32 bytes a line: its layout differs per console or firmware. */
-static void log_state(const uint8_t state[INDICATOR_STATE_SIZE]) {
-    for (int line = 0; line < INDICATOR_STATE_SIZE; line += 32) {
-        char hex[32 * 3 + 1] = { 0 };
-        int end = line + 32 < INDICATOR_STATE_SIZE ? line + 32 : INDICATOR_STATE_SIZE;
-        for (int i = line; i < end; i++) snprintf(hex + (i - line) * 3, 4, "%02x ", state[i]);
-        log_printf("indicator state %3d: %s\n", line, hex);
-    }
-}
-
 void indicator_init(void) {
     uint8_t state[INDICATOR_STATE_SIZE];
     /* Available when the state can be read; a channel without a record in it is left alone. */
     available = indicator_read(state);
-    if (available) log_state(state);
     int blue, white, amber;
     indicator_levels(&blue, &white, &amber);
     log_printf("indicator: colour %s (blue %d, white %d, amber %d)\n", available ? "available" : "unavailable", blue,
@@ -93,19 +106,16 @@ bool indicator_set_color(int blue, int white, int amber) {
     const int levels[3] = { blue, white, amber };
     bool patched = false;
     for (int i = 0; i < 3; i++) {
-        int at = record(state, channels[i]);
+        int at = block(state, channels[i]);
         if (at < 0) continue;
-        state[at + 3] = (uint8_t)levels[i];
+        hold_level(state, at, levels[i]);
         patched = true;
     }
     if (!patched) {
-        log_printf("indicator: no channel record in the state\n");
-        log_state(state);
+        log_printf("indicator: no channel block in the state\n");
         return false;
     }
-    bool ok = indicator_enable(true) && indicator_write(state);
-    if (!ok) log_state(state);
-    return ok;
+    return indicator_enable(true) && indicator_write(state);
 }
 
 void indicator_levels(int *blue, int *white, int *amber) {
@@ -113,9 +123,9 @@ void indicator_levels(int *blue, int *white, int *amber) {
     *blue = *white = *amber = -1;
     if (!indicator_read(state)) return;
     int at;
-    if ((at = record(state, CHANNEL_BLUE)) >= 0) *blue = state[at + 3];
-    if ((at = record(state, CHANNEL_WHITE)) >= 0) *white = state[at + 3];
-    if ((at = record(state, CHANNEL_AMBER)) >= 0) *amber = state[at + 3];
+    if ((at = block(state, CHANNEL_BLUE)) >= 0) *blue = block_level(state, at);
+    if ((at = block(state, CHANNEL_WHITE)) >= 0) *white = block_level(state, at);
+    if ((at = block(state, CHANNEL_AMBER)) >= 0) *amber = block_level(state, at);
 }
 
 bool indicator_shows(int blue, int white, int amber) {

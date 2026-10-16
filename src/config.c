@@ -8,20 +8,25 @@
 #include <string.h>
 #include <sys/stat.h>
 
-/* Written when there is no config.json. The tune: beep.. beep. beep. beep beep... beep. beep */
+/* Written when there is no config.json. The tune is "Shave and a Haircut" (ta, ta-ta ta ta ... TAA TAA); the light
+ * runs through the three LEDs and their mixes while it plays, and ends on the colour it then keeps. */
 static const char default_config[] =
     "{\n"
     "  \"startup\": {\n"
     "    \"beep\": [\n"
-    "      { \"tone\": 1, \"pause_ms\": 400 }, { \"tone\": 1, \"pause_ms\": 200 }, { \"tone\": 1, \"pause_ms\": 200 },\n"
-    "      { \"tone\": 1, \"pause_ms\": 100 }, { \"tone\": 1, \"pause_ms\": 600 }, { \"tone\": 1, \"pause_ms\": 200 },\n"
-    "      { \"tone\": 1 }\n"
+    "      { \"tone\": 1, \"pause_ms\": 300 }, { \"tone\": 1, \"pause_ms\": 150 }, { \"tone\": 1, \"pause_ms\": 150 },\n"
+    "      { \"tone\": 1, \"pause_ms\": 300 }, { \"tone\": 1, \"pause_ms\": 600 }, { \"tone\": 3, \"pause_ms\": 300 },\n"
+    "      { \"tone\": 3 }\n"
     "    ],\n"
     "    \"led\": [\n"
-    "      { \"color\": \"blue\", \"ms\": 400 }, { \"color\": \"white\", \"ms\": 400 }, { \"color\": \"blue\", \"ms\": 400 }\n"
+    "      { \"color\": \"blue\", \"ms\": 250 }, { \"color\": \"white\", \"ms\": 250 }, { \"color\": \"orange\", \"ms\": 250 },\n"
+    "      { \"color\": \"blue\", \"ms\": 250 }, { \"color\": \"white\", \"ms\": 250 }, { \"color\": \"orange\", \"ms\": 250 },\n"
+    "      { \"blue\": 255, \"white\": 255, \"ms\": 300 }, { \"white\": 255, \"amber\": 255, \"ms\": 300 },\n"
+    "      { \"blue\": 255, \"amber\": 255, \"ms\": 300 }, { \"color\": \"off\", \"ms\": 250 },\n"
+    "      { \"blue\": 255, \"white\": 80, \"amber\": 200, \"ms\": 800 }\n"
     "    ]\n"
     "  },\n"
-    "  \"led_color\": null\n"
+    "  \"led_color\": { \"blue\": 255, \"white\": 80, \"amber\": 200 }\n"
     "}\n";
 
 static json_document doc;

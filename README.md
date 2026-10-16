@@ -26,7 +26,7 @@ Firmware 9.00 or newer.
 
 1. Send `ps5-signal.elf` to the ELF loader (etaHEN: port 9021), or load it with your autoloader at start-up.
 2. It plays the startup sequence from `/data/ps5-signal/config.json`. When the file doesn't exist it writes this
-   default: the tune *Shave and a Haircut* (ta, ta-ta ta ta ... ta ta), a run through the blue, white and amber
+   default: the tune *Shave and a Haircut* (ta, ta-ta ta ta ... ta TAA), a run through the blue, white and amber
    LEDs and their mixes, and then the light keeps a purple (blue 255, white 80, amber 200).
 
    ```json
@@ -35,7 +35,7 @@ Firmware 9.00 or newer.
        "beep": [
          { "tone": 1, "pause_ms": 300 }, { "tone": 1, "pause_ms": 150 }, { "tone": 1, "pause_ms": 150 },
          { "tone": 1, "pause_ms": 300 }, { "tone": 1, "pause_ms": 600 }, { "tone": 1, "pause_ms": 300 },
-         { "tone": 1 }
+         { "tone": 3 }
        ],
        "led": [
          { "color": "blue", "ms": 250 }, { "color": "white", "ms": 250 }, { "color": "orange", "ms": 250 },
@@ -98,6 +98,9 @@ After an LED sequence, also a stopped one, the service puts the LED back: the br
 the held colour, or else the colour state the system had set. If the beeper is muted in the console's settings, beeps stay
 silent: the service doesn't change that setting.
 
+**For developers:** [docs/API.md](docs/API.md) explains how to use the API from your own homebrew, with examples
+in C and JavaScript.
+
 ### From C
 
 Copy [`client/ps5_signal.h`](client/ps5_signal.h) into your project:
@@ -110,7 +113,8 @@ ps5_signal_beep("[{\"tone\":1,\"pause_ms\":150},{\"tone\":1}]");
 ps5_signal_led("[{\"color\":\"orange\",\"ms\":400},{\"color\":\"off\",\"ms\":400}]", 3);
 ```
 
-Each call returns the HTTP status, or -1 when the service doesn't run.
+Each call returns the HTTP status, or -1 when the service doesn't run. The header also has
+`ps5_signal_running()`, `ps5_signal_color()`, `ps5_signal_color_system()` and `ps5_signal_stop()`.
 
 ### From a web page or JavaScript
 

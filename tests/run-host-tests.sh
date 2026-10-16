@@ -29,7 +29,8 @@ check "status" 200 "$url/status"
 beep "6 beeps" 202 '{"pattern":[{"tone":1,"pause_ms":100},{"tone":1,"pause_ms":100},{"tone":1,"pause_ms":100},{"tone":1,"pause_ms":100},{"tone":1,"pause_ms":100},{"tone":1}]}'
 beep "while a beep sequence plays" 409 '{"pattern":[{"tone":1}]}'
 sleep 0.8
-beep "7 beeps" 400 '{"pattern":[{"tone":1},{"tone":1},{"tone":1},{"tone":1},{"tone":1},{"tone":1},{"tone":1}]}'
+beep "25 beeps" 400 "{\"pattern\":[$(printf '{"tone":1},%.0s' {1..24}){\"tone\":1}]}"
+beep "pauses over 10 s" 400 "{\"pattern\":[$(printf '{"tone":1,"pause_ms":2000},%.0s' {1..5}){\"tone\":1,\"pause_ms\":100},{\"tone\":1}]}"
 beep "pause 99 ms" 400 '{"pattern":[{"tone":1,"pause_ms":99},{"tone":1}]}'
 beep "pause 2001 ms" 400 '{"pattern":[{"tone":1,"pause_ms":2001},{"tone":1}]}'
 beep "tone 4" 400 '{"pattern":[{"tone":4}]}'
@@ -45,13 +46,15 @@ sleep 0.8
 led "LED step of 249 ms" 400 '{"pattern":[{"level":2,"ms":249}]}'
 led "level and colour together" 400 '{"pattern":[{"level":2,"color":"blue","ms":300}]}'
 led "unknown colour" 400 '{"pattern":[{"color":"green","ms":300}]}'
+led "steps over 10 s" 400 '{"pattern":[{"level":2,"ms":6000},{"level":1,"ms":4001}]}'
+led "10 s times repeat" 400 '{"pattern":[{"level":2,"ms":4000}],"repeat":3}'
 check "unknown path" 404 "$url/nothing"
 check "GET /beep" 405 "$url/beep"
 check "raw LED state (development build)" 200 "$url/indicator/raw"
 
 # The held colour and the config API.
 check "GET /config (default)" 200 "$url/config"
-grep -q '"led_color": null' "$work/body" && echo "ok   default config served" ||
+grep -q '"led_color": { "blue": 255, "white": 80, "amber": 200 }' "$work/body" && echo "ok   default config served" ||
     { echo "FAIL default config: $(cat "$work/body")"; failures=$((failures + 1)); }
 check "POST /color" 202 -X POST "$url/color" -d '{"blue":100,"amber":30}'
 check "status after /color" 200 "$url/status"
@@ -74,7 +77,7 @@ check "status after PUT /config" 200 "$url/status"
 grep -q '"held":{"blue":0,"white":200,"amber":0}' "$work/body" && echo "ok   saved colour held" ||
     { echo "FAIL saved colour not held: $(cat "$work/body")"; failures=$((failures + 1)); }
 cp "$config/config.json" "$work/saved.json"
-check "PUT /config, 17 startup beeps" 400 -X PUT "$url/config" -d "{\"startup\":{\"beep\":[$(printf '{"tone":1},%.0s' {1..16}){\"tone\":1}]}}"
+check "PUT /config, 25 startup beeps" 400 -X PUT "$url/config" -d "{\"startup\":{\"beep\":[$(printf '{"tone":1},%.0s' {1..24}){\"tone\":1}]}}"
 check "PUT /config, colour 256" 400 -X PUT "$url/config" -d '{"led_color":{"blue":256}}'
 cmp -s "$config/config.json" "$work/saved.json" && echo "ok   invalid config not written" ||
     { echo "FAIL invalid config written"; failures=$((failures + 1)); }
@@ -93,8 +96,8 @@ sleep 2.6
 kill $server; wait $server 2>/dev/null || true
 [[ -f $config/config.json ]] && echo "ok   default config written" ||
     { echo "FAIL no default config"; failures=$((failures + 1)); }
-[[ $(grep -c "\[fake\] beep 1" "$work/startup.log") == 7 ]] && echo "ok   startup tune: 7 beeps" ||
-    { echo "FAIL startup tune: $(grep -c "\[fake\] beep 1" "$work/startup.log") beeps"; failures=$((failures + 1)); }
+[[ $(grep -c "\[fake\] beep [13]" "$work/startup.log") == 7 ]] && echo "ok   startup tune: 7 beeps" ||
+    { echo "FAIL startup tune: $(grep -c "\[fake\] beep [13]" "$work/startup.log") beeps"; failures=$((failures + 1)); }
 grep -q "led colour 255/0/0" "$work/startup.log" && grep -q "led colour 0/255/0" "$work/startup.log" &&
     echo "ok   startup LED: blue, white" || { echo "FAIL startup LED"; failures=$((failures + 1)); }
 printf '{"startup":{"beep":[{"tone":9}]}}' > "$config/config.json"

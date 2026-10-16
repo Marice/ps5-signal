@@ -34,7 +34,7 @@ Firmware 9.00 or newer.
      "startup": {
        "beep": [
          { "tone": 1, "pause_ms": 300 }, { "tone": 1, "pause_ms": 150 }, { "tone": 1, "pause_ms": 150 },
-         { "tone": 1, "pause_ms": 300 }, { "tone": 1, "pause_ms": 600 }, { "tone": 3, "pause_ms": 300 },
+         { "tone": 1, "pause_ms": 300 }, { "tone": 1, "pause_ms": 600 }, { "tone": 3, "pause_ms": 650 },
          { "tone": 3 }
        ],
        "led": [

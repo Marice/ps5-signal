@@ -15,7 +15,7 @@ static const char default_config[] =
     "  \"startup\": {\n"
     "    \"beep\": [\n"
     "      { \"tone\": 1, \"pause_ms\": 300 }, { \"tone\": 1, \"pause_ms\": 150 }, { \"tone\": 1, \"pause_ms\": 150 },\n"
-    "      { \"tone\": 1, \"pause_ms\": 300 }, { \"tone\": 1, \"pause_ms\": 600 }, { \"tone\": 3, \"pause_ms\": 300 },\n"
+    "      { \"tone\": 1, \"pause_ms\": 300 }, { \"tone\": 1, \"pause_ms\": 600 }, { \"tone\": 3, \"pause_ms\": 650 },\n"
     "      { \"tone\": 3 }\n"
     "    ],\n"
     "    \"led\": [\n"

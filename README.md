@@ -22,6 +22,20 @@ each channel is a small program of steps (the system's own light fades this way)
 channel as a single step that holds its level. Whether the LED has zones that can be lit separately is not known yet.
 Firmware 9.00 or newer.
 
+## The easy way: Signal Companion
+
+[Signal Companion](https://github.com/Marice/ps5-signal-companion) is a homebrew app that carries ps5-signal and
+installs it for you:
+
+1. Install Signal Companion (homebrew store, or the `PPSA69426` folder from its
+   [release](https://github.com/Marice/ps5-signal-companion/releases/latest) in `/data/homebrew/`).
+2. Open it and choose **Start it** when it says ps5-signal is not running.
+3. Optional: switch on **Start with ps5-autoloader** on its Status screen, so ps5-signal loads with every boot.
+4. Choose the colour and edit the startup tune and light show in the app.
+
+To update, install the new app and choose **Restart ps5-signal**. The rest of this section is for loading
+ps5-signal yourself.
+
 ## Running it
 
 1. Send `ps5-signal.elf` to the ELF loader (etaHEN: port 9021), or load it with your autoloader at start-up.

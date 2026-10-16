@@ -17,9 +17,10 @@ functions replaced by fakes (`tests/run-host-tests.sh`).
 | LED brightness | 0 bright, 1 medium, 2 dim | same |
 | LED colour | three channels, 0-255 each: blue, white, amber; mixed for other shades | [PS5-Suite](https://github.com/manos555555/PS5-Suite) (`/dev/icc_indicator`) |
 
-There is no free RGB colour: the LED has blue, white and amber light only. Whether the console's LED has zones
-that can be lit separately is not known yet (the development build's `/indicator/raw` shows the state the console
-holds). Firmware 9.00 or newer.
+There is no free RGB colour: the LED has blue, white and amber light only. The LED state holds a record per channel;
+a channel without a record in it is left as it is. Its layout differs between consoles, so the service writes it to
+the log at start (`indicator state`). Whether the LED has zones that can be lit separately is not known yet.
+Firmware 9.00 or newer.
 
 ## Running it
 
@@ -62,6 +63,7 @@ All requests go to `http://127.0.0.1:9150`. Bodies are JSON objects; answers are
 | `POST /beep` | `{"pattern": [{"tone": 1, "pause_ms": 200}, {"tone": 3}]}` | `202` playing |
 | `POST /led` | `{"pattern": [{"color": "orange", "ms": 400}, {"level": 2, "ms": 400}], "repeat": 2}` | `202` playing |
 | `POST /stop` | | Ends both sequences and puts the LED back |
+| `POST /quit` | | Ends both sequences and stops the service, so a new build can be loaded without restarting the console |
 | `POST /color` | `{"blue": 120, "white": 0, "amber": 255}` or `{"system": true}` | Holds a colour now without saving it (to try colours), or the system's again |
 | `GET /config` | | `config.json` as it is (the default when there is none) |
 | `PUT /config` | the whole config | Checked like the startup config, written, and its `led_color` held at once; `400` with the reason when it isn't valid (the file is then left as it is) |

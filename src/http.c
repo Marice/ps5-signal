@@ -256,6 +256,19 @@ static void handle(int fd) {
         respond(fd, 200, "OK", "{\"stopped\":true}");
         return;
     }
+    /* Ends the service, so a new build can take the port without a restart of the console. */
+    if (strcmp(path, "/quit") == 0) {
+        if (!post) {
+            respond_error(fd, 405, "Method Not Allowed", "use POST");
+            return;
+        }
+        player_stop();
+        respond(fd, 200, "OK", "{\"quitting\":true}");
+        close(fd);
+        log_printf("quit requested\n");
+        usleep(300 * 1000); /* lets a sequence that was stopped put the LED back */
+        _exit(0);
+    }
     if (strcmp(path, "/config") == 0) {
         if (get) handle_config_get(fd);
         else if (strcmp(method, "PUT") == 0) handle_config_put(fd, body, (size_t)content_length);

@@ -59,7 +59,8 @@ void icc_init(void) {
 
 bool icc_beep_available(void) { return true; }
 
-bool icc_led_available(void) { return set_led_fn != NULL && icc_led_level() >= 0; }
+/* The getter's signature is a guess that fails on some consoles; setting still works without it. */
+bool icc_led_available(void) { return set_led_fn != NULL; }
 
 int icc_beep(int tone) {
     if (tone < 0 || tone > ICC_TONE_MAX) return -1;

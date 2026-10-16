@@ -6,8 +6,7 @@ so a payload, a game port or a web page on the console can beep or light the con
 internal functions itself. A homebrew app can't drive these itself: they need a system process's rights, which
 only this payload takes.
 
-Not tested on a console yet. The API, the limits and the startup config are tested on a PC with the console's
-functions replaced by fakes (`tests/run-host-tests.sh`).
+Tested on a 13.60 PS5 pro.
 
 ## What the console allows
 

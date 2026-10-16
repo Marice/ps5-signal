@@ -1,0 +1,6 @@
+# Build output and downloaded tools
+*.elf
+/.deps/
+/.home/
+# Decision log stays local (as in the other ports)
+/docs/decision-log.md

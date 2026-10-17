@@ -5,7 +5,7 @@ include $(PS5_PAYLOAD_SDK)/toolchain/prospero.mk
 
 CFLAGS  += -std=c11 -Wall -Wextra -O2 -fno-stack-protector
 LDLIBS  += -lSceUserService -lpthread
-SOURCES := src/main.c src/config.c src/icc.c src/indicator.c src/patterns.c src/player.c src/http.c src/json.c
+SOURCES := src/main.c src/config.c src/icc.c src/indicator.c src/patterns.c src/player.c src/http.c src/json.c src/temperature.c
 HEADERS := $(wildcard src/*.h)
 
 .PHONY: all dev clean

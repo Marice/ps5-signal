@@ -2,6 +2,7 @@
 #include "icc.h"
 #include "indicator.h"
 #include "log.h"
+#include "temperature.h"
 
 #include <pthread.h>
 #include <stdatomic.h>
@@ -127,14 +128,87 @@ static void *run(void *argument) {
     return NULL;
 }
 
+static bool temperature_shown(void);
+
 /* Keeps the held colour while no LED sequence plays: the system may take the LED back. */
 static void *keep_held_color(void *unused) {
     (void)unused;
     for (;;) {
         sleep(2);
-        if (!atomic_load(&light.playing)) restore_held_color(false);
+        if (!atomic_load(&light.playing) && !temperature_shown()) restore_held_color(false);
     }
     return NULL;
+}
+
+/* The temperature on the LED: the colour for the hottest sensor, set when it changes. The held colour (the
+ * player's own) is kept aside and comes back when this stops. */
+#define TEMPERATURE_PERIOD_SECONDS 3
+static pthread_mutex_t temperature_lock = PTHREAD_MUTEX_INITIALIZER;
+static bool temperature_on;
+static int temperature_cool = TEMPERATURE_COOL, temperature_warm = TEMPERATURE_WARM;
+static int shown_blue = -1, shown_white = -1, shown_amber = -1;
+
+static void show_temperature(void) {
+    pthread_mutex_lock(&temperature_lock);
+    bool on = temperature_on;
+    int cool = temperature_cool, warm = temperature_warm;
+    pthread_mutex_unlock(&temperature_lock);
+    if (!on || atomic_load(&light.playing)) return;
+    int celsius = temperature_now();
+    if (celsius < 0) return;
+    int b, w, a;
+    temperature_color(celsius, cool, warm, &b, &w, &a);
+    /* Set again when the system took the LED back, as a held colour is. */
+    if (b == shown_blue && w == shown_white && a == shown_amber && indicator_shows(b, w, a)) return;
+    if (indicator_set_color(b, w, a)) {
+        shown_blue = b;
+        shown_white = w;
+        shown_amber = a;
+    }
+}
+
+static void *watch_temperature(void *unused) {
+    (void)unused;
+    for (;;) {
+        show_temperature();
+        sleep(TEMPERATURE_PERIOD_SECONDS);
+    }
+    return NULL;
+}
+
+static bool temperature_shown(void) {
+    pthread_mutex_lock(&temperature_lock);
+    bool on = temperature_on;
+    pthread_mutex_unlock(&temperature_lock);
+    return on;
+}
+
+void player_temperature(bool on, int cool, int warm) {
+    pthread_mutex_lock(&temperature_lock);
+    bool was = temperature_on;
+    temperature_on = on;
+    temperature_cool = cool;
+    temperature_warm = warm;
+    shown_blue = shown_white = shown_amber = -1;
+    pthread_mutex_unlock(&temperature_lock);
+    if (on) {
+        show_temperature();
+    } else if (was) {
+        /* The player's own colour, or the system's, again. */
+        if (!restore_held_color(true) && have_system_state) {
+            indicator_enable(true);
+            indicator_write(system_state);
+        }
+    }
+}
+
+bool player_temperature_shown(int *cool, int *warm) {
+    pthread_mutex_lock(&temperature_lock);
+    bool on = temperature_on;
+    *cool = temperature_cool;
+    *warm = temperature_warm;
+    pthread_mutex_unlock(&temperature_lock);
+    return on;
 }
 
 void player_start(void) {
@@ -142,6 +216,8 @@ void player_start(void) {
     have_system_state = indicator_available() && indicator_read(system_state);
     pthread_t thread;
     pthread_create(&thread, NULL, keep_held_color, NULL);
+    pthread_detach(thread);
+    pthread_create(&thread, NULL, watch_temperature, NULL);
     pthread_detach(thread);
     pthread_create(&thread, NULL, run, &beeper);
     pthread_detach(thread);
@@ -180,6 +256,7 @@ player_result player_beep(const beep_step *steps, int count) {
 }
 
 player_result player_led(const led_step *steps, int count, int repeat) {
+    if (temperature_shown()) return PLAYER_TEMPERATURE;
     for (int i = 0; i < count; i++) {
         if (steps[i].level >= 0 ? !icc_led_available() : !indicator_available()) return PLAYER_UNAVAILABLE;
     }
@@ -210,6 +287,16 @@ bool player_lighting(void) { return atomic_load(&light.playing); }
 
 player_result player_hold_color(bool hold, int blue, int white, int amber) {
     if (!indicator_available()) return PLAYER_UNAVAILABLE;
+    if (temperature_shown()) {
+        /* Kept aside: it shows again when the temperature stops showing. */
+        pthread_mutex_lock(&held_lock);
+        held = hold;
+        held_blue = blue;
+        held_white = white;
+        held_amber = amber;
+        pthread_mutex_unlock(&held_lock);
+        return PLAYER_TEMPERATURE;
+    }
     pthread_mutex_lock(&limits);
     roll_window();
     bool allowed = led_changes + 1 <= PLAYER_LED_CHANGES_PER_MINUTE;

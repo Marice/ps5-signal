@@ -20,7 +20,9 @@ typedef int (*icc_set_fn)(int);
  * 0 returned) or as the return value. A void function ignores the extra argument on x86-64. */
 typedef int (*icc_get_fn)(int *);
 
-static icc_set_fn set_led_fn;
+static icc_set_fn set_led_fn, set_volume_fn;
+/* The volume this service set, while the getter can't say (-1: none set). */
+static int volume_set = -1;
 static icc_get_fn get_led_fn, get_mute_fn, get_volume_fn;
 
 static intptr_t resolve(const char *name) {
@@ -48,6 +50,7 @@ void icc_init(void) {
     kernel_set_ucred_caps(getpid(), caps);
 
     set_led_fn = (icc_set_fn)resolve("sceKernelIccSetDynamicLedDimSetting");
+    set_volume_fn = (icc_set_fn)resolve("sceKernelIccSetBuzzerDimSetting");
     get_led_fn = (icc_get_fn)resolve("sceKernelIccGetDynamicLedDimSetting");
     get_mute_fn = (icc_get_fn)resolve("sceKernelIccGetBuzzerOffSetting");
     get_volume_fn = (icc_get_fn)resolve("sceKernelIccGetBuzzerDimSetting");
@@ -80,4 +83,15 @@ int icc_beeper_muted(void) {
     return value < 0 ? -1 : value != 0;
 }
 
-int icc_beeper_volume(void) { return read_setting(get_volume_fn, 2); }
+int icc_beeper_volume(void) {
+    int value = read_setting(get_volume_fn, ICC_VOLUME_MAX);
+    return value >= 0 ? value : volume_set;
+}
+
+int icc_set_beeper_volume(int volume) {
+    if (set_volume_fn == NULL || volume < 0 || volume > ICC_VOLUME_MAX) return -1;
+    int result = set_volume_fn(volume);
+    if (result == 0) volume_set = volume;
+    else log_printf("beeper volume %d failed: 0x%x\n", volume, result);
+    return result;
+}

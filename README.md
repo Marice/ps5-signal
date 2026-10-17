@@ -64,6 +64,11 @@ ps5-signal yourself.
    }
    ```
 
+   - `temperature_led`: `{"cool": 45, "warm": 70}` shows the console's temperature on the LED instead of
+     `led_color`: blue up to `cool` °C, white halfway, amber from `warm` °C on, blended between, checked every
+     3 seconds. `null` (the default) is off. While it is on, `POST /led` and `POST /color` answer `409`. Reviewers
+     measured the PS5's SoC at about 60-70 °C while gaming; the console's own sensors may read differently, so set
+     the range after looking at `/status`.
    - `led_color`: a colour to hold, `{"blue": 0-255, "white": 0-255, "amber": 0-255}`, or `null` for the
      system's own. The service sets it at start, sets it again when the system takes the LED back (checked every
      2 seconds), and returns to it after every LED sequence.
@@ -83,6 +88,7 @@ All requests go to `http://127.0.0.1:9150`. Bodies are JSON objects; answers are
 | `POST /beep` | `{"pattern": [{"tone": 1, "pause_ms": 200}, {"tone": 3}]}` | `202` playing |
 | `POST /led` | `{"pattern": [{"color": "orange", "ms": 400}, {"level": 2, "ms": 400}], "repeat": 2}` | `202` playing |
 | `POST /stop` | | Ends both sequences and puts the LED back |
+| `POST /beeper` | `{"volume": 0-2}` | The beeper's volume (0 high, 1 medium, 2 low), the setting the console keeps |
 | `POST /quit` | | Ends both sequences and stops the service, so a new build can be loaded without restarting the console |
 | `POST /color` | `{"blue": 120, "white": 0, "amber": 255}` or `{"system": true}` | Holds a colour now without saving it (to try colours), or the system's again |
 | `GET /config` | | `config.json` as it is (the default when there is none) |

@@ -2,8 +2,12 @@
  *
  *   {
  *     "startup": { "beep": [ beep steps, up to 16 ], "led": [ LED steps ] },
- *     "led_color": { "blue": 0-255, "white": 0-255, "amber": 0-255 }   (or null: the system's colour)
+ *     "led_color": { "blue": 0-255, "white": 0-255, "amber": 0-255 },  (or null: the system's colour)
+ *     "temperature_led": { "cool": 20-100, "warm": 20-100 }             (or null: off)
  *   }
+ *
+ * With temperature_led the LED shows the console's temperature instead of led_color: blue up to cool, white
+ * halfway, amber from warm on (cool at least 4 below warm).
  *
  * The steps follow patterns.h. A missing or empty part is off. */
 #pragma once
@@ -26,6 +30,8 @@ typedef struct {
     int led_count;
     bool has_color;
     int blue, white, amber;
+    bool temperature;
+    int cool, warm;
 } config;
 
 /* Checks text as a config; false with a reason in error when it isn't valid. */

@@ -24,6 +24,8 @@ static void apply_config(void) {
     if (settings.has_color) player_hold_color(true, settings.blue, settings.white, settings.amber);
     if (settings.beep_count > 0) player_beep(settings.beeps, settings.beep_count);
     if (settings.led_count > 0) player_led(settings.leds, settings.led_count, 1);
+    /* After the startup light: it shows first, then the temperature. */
+    if (settings.temperature) player_temperature(true, settings.cool, settings.warm);
 }
 
 static void on_signal(int number) {

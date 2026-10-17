@@ -6,6 +6,7 @@
 #include "log.h"
 #include "patterns.h"
 #include "player.h"
+#include "temperature.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -56,7 +57,9 @@ static const char *setting(char *buffer, size_t size, int value) {
 }
 
 static void handle_status(int fd) {
-    char json[768], led[8], volume[8], blue[8], white[8], amber[8], held_json[64] = "null";
+    char json[1024], led[8], volume[8], blue[8], white[8], amber[8], held_json[64] = "null", cpu[8], soc[8];
+    int cool, warm;
+    bool temperature = player_temperature_shown(&cool, &warm);
     int muted = icc_beeper_muted();
     int b, w, a, hb, hw, ha;
     indicator_levels(&b, &w, &a);
@@ -67,12 +70,15 @@ static void handle_status(int fd) {
              "{\"service\":\"ps5-signal\",\"version\":\"" VERSION "\","
              "\"beep\":{\"playing\":%s,\"muted\":%s,\"volume\":%s},"
              "\"led\":{\"playing\":%s,\"available\":%s,\"level\":%s,"
-             "\"color\":{\"available\":%s,\"blue\":%s,\"white\":%s,\"amber\":%s,\"held\":%s}}}",
+             "\"color\":{\"available\":%s,\"blue\":%s,\"white\":%s,\"amber\":%s,\"held\":%s}},"
+             "\"temperature\":{\"cpu\":%s,\"soc\":%s,\"led\":%s,\"cool\":%d,\"warm\":%d}}",
              player_beeping() ? "true" : "false", muted < 0 ? "null" : (muted ? "true" : "false"),
              setting(volume, sizeof(volume), icc_beeper_volume()), player_lighting() ? "true" : "false",
              icc_led_available() ? "true" : "false", setting(led, sizeof(led), icc_led_level()),
              indicator_available() ? "true" : "false", setting(blue, sizeof(blue), b),
-             setting(white, sizeof(white), w), setting(amber, sizeof(amber), a), held_json);
+             setting(white, sizeof(white), w), setting(amber, sizeof(amber), a), held_json,
+             setting(cpu, sizeof(cpu), temperature_cpu()), setting(soc, sizeof(soc), temperature_soc()),
+             temperature ? "true" : "false", cool, warm);
     respond(fd, 200, "OK", json);
 }
 
@@ -101,7 +107,10 @@ static void handle_config_put(int fd, const char *body, size_t length) {
         respond_error(fd, written ? 400 : 500, written ? "Bad Request" : "Internal Server Error", error);
         return;
     }
+    /* Off first, so the held colour is set at once; on again after it, so the temperature shows. */
+    player_temperature(false, settings.cool, settings.warm);
     player_hold_color(settings.has_color, settings.blue, settings.white, settings.amber);
+    if (settings.temperature) player_temperature(true, settings.cool, settings.warm);
     respond(fd, 200, "OK", "{\"saved\":true}");
 }
 
@@ -129,6 +138,20 @@ static void handle_color(int fd, const json_document *doc) {
     respond_result(fd, player_hold_color(hold, b, w, a), "");
 }
 
+/* POST /beeper: the beeper's volume, {"volume": 0-2} (0 high, 1 medium, 2 low), the setting the console keeps. */
+static void handle_beeper(int fd, const json_document *doc) {
+    int volume;
+    if (!patterns_int(doc, &doc->nodes[0], "volume", ICC_VOLUME_HIGH, ICC_VOLUME_MAX, -1, &volume)) {
+        respond_error(fd, 400, "Bad Request", "volume: 0 high, 1 medium or 2 low");
+        return;
+    }
+    if (icc_set_beeper_volume(volume) != 0) {
+        respond_error(fd, 503, "Service Unavailable", "not available on this console");
+        return;
+    }
+    respond(fd, 200, "OK", "{\"volume\":true}");
+}
+
 static void respond_result(int fd, player_result result, const char *busy) {
     switch (result) {
     case PLAYER_STARTED:
@@ -142,6 +165,9 @@ static void respond_result(int fd, player_result result, const char *busy) {
         break;
     case PLAYER_UNAVAILABLE:
         respond_error(fd, 503, "Service Unavailable", "not available on this console");
+        break;
+    case PLAYER_TEMPERATURE:
+        respond_error(fd, 409, "Conflict", "the LED shows the temperature: switch temperature_led off to use it");
         break;
     }
 }
@@ -277,8 +303,9 @@ static void handle(int fd) {
         return;
     }
     bool beep = strcmp(path, "/beep") == 0, led = strcmp(path, "/led") == 0, color = strcmp(path, "/color") == 0;
-    if (!beep && !led && !color) {
-        respond_error(fd, 404, "Not Found", "use /status, /beep, /led, /color, /config or /stop");
+    bool beeper = strcmp(path, "/beeper") == 0;
+    if (!beep && !led && !color && !beeper) {
+        respond_error(fd, 404, "Not Found", "use /status, /beep, /beeper, /led, /color, /config or /stop");
         return;
     }
     if (!post) {
@@ -290,6 +317,7 @@ static void handle(int fd) {
         return;
     }
     if (beep) handle_beep(fd, &doc);
+    else if (beeper) handle_beeper(fd, &doc);
     else if (led) handle_led(fd, &doc);
     else handle_color(fd, &doc);
 }

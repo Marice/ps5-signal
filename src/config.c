@@ -2,6 +2,7 @@
 #include "json.h"
 #include "log.h"
 #include "patterns.h"
+#include "temperature.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -26,7 +27,8 @@ static const char default_config[] =
     "      { \"blue\": 255, \"white\": 80, \"amber\": 200, \"ms\": 800 }\n"
     "    ]\n"
     "  },\n"
-    "  \"led_color\": { \"blue\": 255, \"white\": 80, \"amber\": 200 }\n"
+    "  \"led_color\": { \"blue\": 255, \"white\": 80, \"amber\": 200 },\n"
+    "  \"temperature_led\": null\n"
     "}\n";
 
 static json_document doc;
@@ -68,6 +70,18 @@ bool config_parse(const char *text, size_t length, config *out, char *error, siz
             return fail(error, error_size, "led_color: null, or blue, white and amber 0-255");
         }
         out->has_color = true;
+    }
+    const json_node *temperature = json_member(&doc, root, "temperature_led");
+    out->cool = TEMPERATURE_COOL;
+    out->warm = TEMPERATURE_WARM;
+    if (temperature != NULL && temperature->type != JSON_NULL) {
+        if (temperature->type != JSON_OBJECT ||
+            !patterns_int(&doc, temperature, "cool", TEMPERATURE_MIN, TEMPERATURE_MAX, TEMPERATURE_COOL, &out->cool) ||
+            !patterns_int(&doc, temperature, "warm", TEMPERATURE_MIN, TEMPERATURE_MAX, TEMPERATURE_WARM, &out->warm) ||
+            out->warm - out->cool < 4) {
+            return fail(error, error_size, "temperature_led: null, or cool and warm 20-100 C with cool at least 4 below warm");
+        }
+        out->temperature = true;
     }
     return true;
 }

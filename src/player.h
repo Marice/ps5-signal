@@ -31,6 +31,7 @@ typedef enum {
     PLAYER_BUSY,        /* a sequence of this kind is playing */
     PLAYER_LIMITED,     /* over the per-minute limit */
     PLAYER_UNAVAILABLE, /* not possible on this console */
+    PLAYER_TEMPERATURE, /* the LED shows the temperature: LED patterns and colours are refused */
 } player_result;
 
 void player_start(void);
@@ -42,6 +43,11 @@ void player_stop(void);
 /* The LED colour to hold between sequences (the system may take the LED back: it is set again when it changed),
  * or, with hold false, the system's own LED state again. */
 player_result player_hold_color(bool hold, int blue, int white, int amber);
+/* Shows the temperature on the LED (checked every 3 seconds), between cool and warm degrees, or stops it (the
+ * held colour, or the system's, again). While on, player_led and player_hold_color refuse. */
+void player_temperature(bool on, int cool, int warm);
+/* Whether the temperature shows, and its range. */
+bool player_temperature_shown(int *cool, int *warm);
 /* The held colour; false when the system's colour shows. */
 bool player_held_color(int *blue, int *white, int *amber);
 bool player_beeping(void);

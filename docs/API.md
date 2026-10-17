@@ -59,6 +59,7 @@ Send requests to `http://127.0.0.1:9150`. Bodies are JSON objects; answers are J
 | `POST /led` | `{"pattern": [light steps], "repeat": 1-5}` | `202` |
 | `POST /color` | `{"blue": 0-255, "white": 0-255, "amber": 0-255}` or `{"system": true}` | `202` |
 | `POST /stop` | | `200` |
+| `POST /beeper` | `{"volume": 0-2}` | `200`: the beeper's volume, the player's setting (leave it to them) |
 
 `GET /config`, `PUT /config` and `POST /quit` are for Signal Companion and the player. Do not change the player's
 config or stop the service from your homebrew.
@@ -123,7 +124,7 @@ Every error has a body like `{"error": "..."}` that says what is wrong.
 | --- | --- | --- |
 | `400` | The body is not valid | Read `error`; check the steps against the tables above |
 | `404` / `405` | Unknown path / wrong method | Check the request |
-| `409` | A pattern of that kind plays | Try again when it ends, or `POST /stop` |
+| `409` | A pattern of that kind plays, or the LED shows the temperature (the player's choice) | Try again when it ends, or `POST /stop`; for the temperature, leave the light alone |
 | `413` | The body is over 8 KB | Send fewer steps |
 | `429` | Over the per-minute limit | Wait; play fewer signals |
 | `503` | This console does not offer it | Leave it out |
@@ -150,7 +151,8 @@ Or ask `GET /status` and check for `200`. The answer also says what this console
 }
 ```
 
-`null` means that the console did not report the value. Check `led.color.available` before you send colours, and
+`temperature` gives the CPU and SoC in °C and whether the LED shows the temperature (`"led": true`). `null`
+means that the console did not report the value. Check `led.color.available` before you send colours, and
 `led.available` before you send `level` steps.
 
 ## Examples

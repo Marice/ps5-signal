@@ -7,6 +7,7 @@
 #include "patterns.h"
 #include "player.h"
 #include "temperature.h"
+#include "version.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -22,7 +23,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#define VERSION "0.1.0"
 #define MAX_HEAD 4096
 #define MAX_BODY CONFIG_MAX_SIZE
 
@@ -71,7 +71,7 @@ static void handle_status(int fd) {
         snprintf(held_json, sizeof(held_json), "{\"blue\":%d,\"white\":%d,\"amber\":%d}", hb, hw, ha);
     }
     snprintf(json, sizeof(json),
-             "{\"service\":\"ps5-signal\",\"version\":\"" VERSION "\","
+             "{\"service\":\"ps5-signal\",\"version\":\"" SIGNAL_VERSION "\","
              "\"beep\":{\"playing\":%s,\"muted\":%s,\"volume\":%s},"
              "\"led\":{\"playing\":%s,\"available\":%s,\"level\":%s,"
              "\"color\":{\"available\":%s,\"blue\":%s,\"white\":%s,\"amber\":%s,\"held\":%s}},"

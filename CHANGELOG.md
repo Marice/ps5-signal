@@ -3,9 +3,11 @@
 All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [v0.2.0] - 2026-10-17
 
 ### Added
+- A version marker in the ELF file (`PS5SIGNAL_VER:0.2.0`), so Signal Companion can tell an older copy, in
+  ps5-autoloader's folder say, from its own.
 - `POST /beeper {"volume": 0-2}`: the beeper's volume.
 - `temperature_led` in the config: the LED shows the console's temperature, blue when cool, white when normal,
   amber when warm, checked every 3 seconds. `/status` reports the CPU and SoC temperatures.

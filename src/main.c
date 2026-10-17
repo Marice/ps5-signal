@@ -6,6 +6,7 @@
 #include "indicator.h"
 #include "log.h"
 #include "player.h"
+#include "version.h"
 
 #include <signal.h>
 #include <stdio.h>
@@ -15,6 +16,9 @@
 
 /* Starts the startup sequences and holds the LED colour config.json asks for. A config that isn't valid is left
  * as it is and nothing plays: the log says what is wrong. */
+/* The version marker stays in the file even though nothing reads it here (see version.h). */
+__attribute__((used)) static const volatile char version_marker[] = SIGNAL_VERSION_MARKER;
+
 static void apply_config(void) {
     static config settings;
     char error[256];

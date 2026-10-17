@@ -23,7 +23,10 @@ typedef int (*icc_get_fn)(int *);
 static icc_set_fn set_led_fn, set_volume_fn;
 /* The volume this service set, while the getter can't say (-1: none set). */
 static int volume_set = -1;
-static icc_get_fn get_led_fn, get_mute_fn, get_volume_fn;
+/* The beeper's getters (sceKernelIccGetBuzzerOffSetting, ...GetBuzzerDimSetting) are not called: they never
+ * returned a value here and, unlike the LED's getter, never showed in the kernel's ICC trace, so what the names
+ * resolve to is unclear. The volume is the one this service set. */
+static icc_get_fn get_led_fn;
 
 static intptr_t resolve(const char *name) {
     intptr_t address = kernel_dynlib_dlsym(getpid(), LIBKERNEL_HANDLE, name);
@@ -52,12 +55,8 @@ void icc_init(void) {
     set_led_fn = (icc_set_fn)resolve("sceKernelIccSetDynamicLedDimSetting");
     set_volume_fn = (icc_set_fn)resolve("sceKernelIccSetBuzzerDimSetting");
     get_led_fn = (icc_get_fn)resolve("sceKernelIccGetDynamicLedDimSetting");
-    get_mute_fn = (icc_get_fn)resolve("sceKernelIccGetBuzzerOffSetting");
-    get_volume_fn = (icc_get_fn)resolve("sceKernelIccGetBuzzerDimSetting");
-    log_printf("icc: led set %s, led get %s (level %d), mute get %s (%d), volume get %s (%d)\n",
-               set_led_fn ? "found" : "missing", get_led_fn ? "found" : "missing", icc_led_level(),
-               get_mute_fn ? "found" : "missing", icc_beeper_muted(),
-               get_volume_fn ? "found" : "missing", icc_beeper_volume());
+    log_printf("icc: led set %s, led get %s (level %d), volume set %s\n", set_led_fn ? "found" : "missing",
+               get_led_fn ? "found" : "missing", icc_led_level(), set_volume_fn ? "found" : "missing");
 }
 
 bool icc_beep_available(void) { return true; }
@@ -78,15 +77,9 @@ int icc_set_led(int level) {
 int icc_led_level(void) { return read_setting(get_led_fn, ICC_LED_MAX); }
 
 /* The off setting is 0 (beeps on), or 1 or 2 (both silence them). */
-int icc_beeper_muted(void) {
-    int value = read_setting(get_mute_fn, 2);
-    return value < 0 ? -1 : value != 0;
-}
+int icc_beeper_muted(void) { return -1; }
 
-int icc_beeper_volume(void) {
-    int value = read_setting(get_volume_fn, ICC_VOLUME_MAX);
-    return value >= 0 ? value : volume_set;
-}
+int icc_beeper_volume(void) { return volume_set; }
 
 int icc_set_beeper_volume(int volume) {
     if (set_volume_fn == NULL || volume < 0 || volume > ICC_VOLUME_MAX) return -1;

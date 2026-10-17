@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+- `POST /beeper {"volume": 0-2}`: the beeper's volume.
+- `temperature_led` in the config: the LED shows the console's temperature, blue when cool, white when normal,
+  amber when warm, checked every 3 seconds. `/status` reports the CPU and SoC temperatures.
+
+### Fixed
+- Setting a colour turned the console's beep setting off. The `/dev/icc_indicator` ioctl `0x8001950e`, used as the
+  LED's on/off flag, is the beeper's off setting; it is no longer called. Turn the beep setting on again once in
+  the system settings.
+- The beeper's getters are no longer called: they never returned a value.
+
 ## [v0.1.0] - 2026-10-16
 
 ### Added

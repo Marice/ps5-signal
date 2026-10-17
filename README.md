@@ -193,6 +193,8 @@ GPL-3.0-or-later ([LICENSE](LICENSE)).
 
 - The beeper and LED brightness functions, their values and how to call them: [StonedModder's
   ps5-beeper-LED-Controller](https://github.com/StonedModder/ps5-beeper-LED-Controller) (GPL-3.0-or-later)
+- `/dev/icc_indicator` ioctl `0x8001950e` is the **beeper's off setting**, not an LED on/off flag: writing 1 turns
+  the console's beep setting off. ps5-signal v0.1.0 did; later versions do not (see the changelog).
 - The LED colour channels, the `/dev/icc_indicator` ioctls and the layout of the LED state:
   [PS5-Suite](https://github.com/manos555555/PS5-Suite) by manos555555. Its code has no licence, so none of it is
   copied here; ps5-signal implements those findings itself.

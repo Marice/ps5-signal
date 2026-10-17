@@ -109,7 +109,6 @@ static void play_leds(channel *c) {
 restore:
     if (before_level >= 0) icc_set_led(before_level);
     if (!restore_held_color(true) && have_state) {
-        indicator_enable(true);
         indicator_write(before_state);
     }
 }
@@ -196,7 +195,6 @@ void player_temperature(bool on, int cool, int warm) {
     } else if (was) {
         /* The player's own colour, or the system's, again. */
         if (!restore_held_color(true) && have_system_state) {
-            indicator_enable(true);
             indicator_write(system_state);
         }
     }
@@ -313,7 +311,6 @@ player_result player_hold_color(bool hold, int blue, int white, int amber) {
     if (hold) {
         indicator_set_color(blue, white, amber);
     } else if (have_system_state) {
-        indicator_enable(true);
         indicator_write(system_state);
     }
     return PLAYER_STARTED;

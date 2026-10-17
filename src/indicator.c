@@ -77,6 +77,9 @@ bool indicator_write(const uint8_t state[INDICATOR_STATE_SIZE]) {
     return ok;
 }
 
+/* ioctl 0x8001950e. Not used: it is the beeper's off setting, not the LED's on/off flag PS5-Suite took it for.
+ * Writing 1 turned the console's beep setting off every time a colour was set (confirmed on a console: the beep
+ * setting stayed on once it was no longer called, and colours still showed). Kept for the record. */
 bool indicator_enable(bool on) {
     uint8_t argument[8] = { on ? 1 : 0 };
     pthread_mutex_lock(&lock);
@@ -99,7 +102,6 @@ bool indicator_available(void) { return available; }
 
 bool indicator_set_color(int blue, int white, int amber) {
     if (!available) return false;
-    if (blue == 0 && white == 0 && amber == 0) return indicator_enable(false);
     uint8_t state[INDICATOR_STATE_SIZE];
     if (!indicator_read(state)) return false;
     const uint8_t channels[3] = { CHANNEL_BLUE, CHANNEL_WHITE, CHANNEL_AMBER };
@@ -115,7 +117,8 @@ bool indicator_set_color(int blue, int white, int amber) {
         log_printf("indicator: no channel block in the state\n");
         return false;
     }
-    return indicator_enable(true) && indicator_write(state);
+    /* Only the state: ioctl 0x8001950e turns the beeper off (see indicator_enable). Off is a program at level 0. */
+    return indicator_write(state);
 }
 
 void indicator_levels(int *blue, int *white, int *amber) {

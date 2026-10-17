@@ -35,6 +35,8 @@ typedef enum {
 } player_result;
 
 void player_start(void);
+/* True while the system shows its rest-mode light: ps5-signal leaves the LED alone. */
+bool player_resting(void);
 /* The steps are checked by the caller (patterns.c). */
 player_result player_beep(const beep_step *steps, int count);
 player_result player_led(const led_step *steps, int count, int repeat);

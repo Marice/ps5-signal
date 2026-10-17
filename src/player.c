@@ -129,11 +129,45 @@ static void *run(void *argument) {
 
 static bool temperature_shown(void);
 
+/* Rest mode: once the system starts its rest program, the LED is the system's until the console wakes (a jump of
+ * the clock) or, when it did not sleep after all, for REST_HANDS_OFF_SECONDS. No ICC calls meanwhile. */
+#define REST_HANDS_OFF_SECONDS 120
+static atomic_bool resting;
+static time_t rest_since;
+
+bool player_resting(void) {
+    return atomic_load(&resting);
+}
+
+static void watch_rest(time_t now, time_t before) {
+    if (atomic_load(&resting)) {
+        if (now - before > 5) {
+            log_printf("rest: the console woke\n");
+            atomic_store(&resting, false);
+        } else if (now - rest_since > REST_HANDS_OFF_SECONDS) {
+            log_printf("rest: no sleep followed, the LED is ours again\n");
+            atomic_store(&resting, false);
+        }
+        return;
+    }
+    uint8_t state[INDICATOR_STATE_SIZE];
+    if (indicator_available() && indicator_read(state) && indicator_rest_program(state)) {
+        log_printf("rest: the system's rest program, hands off the LED\n");
+        rest_since = now;
+        atomic_store(&resting, true);
+    }
+}
+
 /* Keeps the held colour while no LED sequence plays: the system may take the LED back. */
 static void *keep_held_color(void *unused) {
     (void)unused;
+    time_t before = time(NULL);
     for (;;) {
-        sleep(2);
+        sleep(1);
+        time_t now = time(NULL);
+        watch_rest(now, before);
+        before = now;
+        if (player_resting()) continue;
         if (!atomic_load(&light.playing) && !temperature_shown()) restore_held_color(false);
     }
     return NULL;
@@ -152,7 +186,7 @@ static void show_temperature(void) {
     bool on = temperature_on;
     int cool = temperature_cool, warm = temperature_warm;
     pthread_mutex_unlock(&temperature_lock);
-    if (!on || atomic_load(&light.playing)) return;
+    if (!on || atomic_load(&light.playing) || player_resting()) return;
     int celsius = temperature_now();
     if (celsius < 0) return;
     int b, w, a;

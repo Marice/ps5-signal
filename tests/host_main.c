@@ -11,6 +11,6 @@ int main(void) {
         return 1;
     }
     player_start();
-    http_serve(server);
+    http_serve(server, SIGNAL_PORT, false);
     return 0;
 }

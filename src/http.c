@@ -9,13 +9,17 @@
 #include "temperature.h"
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <netinet/in.h>
+#include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 
 #define VERSION "0.1.0"
@@ -339,10 +343,49 @@ int http_listen(int port, bool any_address) {
     return server;
 }
 
-void http_serve(int server) {
+static volatile sig_atomic_t reopen_requested = 0;
+
+void http_reopen(void) {
+    reopen_requested = 1;
+}
+
+void http_serve(int server, int port, bool any_address) {
+    int failures = 0;
+    time_t last = time(NULL);
     for (;;) {
+        /* A jump in the wall clock means the console slept: also when no SIGCONT arrives. */
+        time_t now = time(NULL);
+        if (now - last > 5) {
+            log_printf("clock jumped %lld s: the console slept\n", (long long)(now - last));
+            reopen_requested = 1;
+        }
+        last = now;
+        if (reopen_requested) {
+            /* Rest mode closes the console's sockets; listening on the old one would never answer again. */
+            reopen_requested = 0;
+            log_printf("resumed: listening again\n");
+            close(server);
+            sleep(1);
+            int again;
+            while ((again = http_listen(port, any_address)) < 0) sleep(1);
+            server = again;
+        }
+        /* Wait in short slices, so a reopen request is seen without a client. */
+        struct pollfd ready = { .fd = server, .events = POLLIN, .revents = 0 };
+        if (poll(&ready, 1, 1000) <= 0) continue;
         int client = accept(server, NULL, NULL);
-        if (client < 0) continue;
+        if (client < 0) {
+            /* After rest mode the listening socket may be gone: open it again rather than spin. */
+            if (errno == EINTR || errno == EAGAIN || ++failures < 20) continue;
+            log_printf("accept keeps failing (errno %d): listening again\n", errno);
+            close(server);
+            sleep(1);
+            int again = http_listen(port, any_address);
+            if (again >= 0) server = again;
+            failures = 0;
+            continue;
+        }
+        failures = 0;
         struct timeval timeout = { .tv_sec = 2, .tv_usec = 0 };
         setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
         setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));

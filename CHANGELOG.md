@@ -10,7 +10,12 @@ on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `temperature_led` in the config: the LED shows the console's temperature, blue when cool, white when normal,
   amber when warm, checked every 3 seconds. `/status` reports the CPU and SoC temperatures.
 
+### Changed
+- Rest mode: from the system's rest light on, ps5-signal leaves the LED alone, so the console shows its own rest
+  light instead of a mix with the held colour. The held colour comes back after waking.
+
 ### Fixed
+- ps5-signal did not answer after the console woke from rest mode: it now opens its port again.
 - Setting a colour turned the console's beep setting off. The `/dev/icc_indicator` ioctl `0x8001950e`, used as the
   LED's on/off flag, is the beeper's off setting; it is no longer called. Turn the beep setting on again once in
   the system settings.

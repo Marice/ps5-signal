@@ -171,6 +171,9 @@ curl http://<console>:9150/indicator/raw
   changes are limited per minute until it is known.
 - **The system may take the LED back.** During a colour step the service checks twice a second and sets the
   colour again only when it changed.
+- **Rest mode.** When the console starts going to rest, the service leaves the LED alone, so the console shows its
+  own rest light. After waking it holds the player's colour again and answers on its port. In deep sleep the
+  light is always the console's own: no payload runs then.
 - **Firmware.** Functions and the LED device are looked up at start. When one is missing, `/status` says so and
   its requests answer `503`; nothing crashes.
 

@@ -30,13 +30,12 @@ static void apply_config(void) {
 }
 
 #if defined(SIGNAL_DEV)
-/* Development build: every change of the LED state, with the time, standby flag and clock jumps, written to
- * led-trace.log, to learn the system's programs around rest mode. */
+/* Development build: every change of the LED state, with the time and clock jumps, written to led-trace.log, to
+ * learn the system's programs (around rest mode, for one). Never call sceKernelIsMainOnStandbyMode() here: with it
+ * polled, the process was killed when the console slept. */
 #include <pthread.h>
 #include <string.h>
 #include <time.h>
-
-extern int sceKernelIsMainOnStandbyMode(void);
 
 static void *trace_led(void *unused) {
     (void)unused;
@@ -46,7 +45,6 @@ static void *trace_led(void *unused) {
     struct timespec previous_real, previous_mono;
     clock_gettime(CLOCK_REALTIME, &previous_real);
     clock_gettime(CLOCK_MONOTONIC, &previous_mono);
-    int last_standby = -2;
     fprintf(trace, "--- trace started\n");
     fflush(trace);
     for (;;) {
@@ -64,11 +62,6 @@ static void *trace_led(void *unused) {
         snprintf(when, sizeof(when), "%02d:%02d:%02d.%03ld", local.tm_hour, local.tm_min, local.tm_sec, real.tv_nsec / 1000000);
         if (real_gap > 2.0 || mono_gap > 2.0)
             fprintf(trace, "%s clock gap: real %.1f s, monotonic %.1f s\n", when, real_gap, mono_gap);
-        int standby = sceKernelIsMainOnStandbyMode();
-        if (standby != last_standby) {
-            fprintf(trace, "%s standby flag %d\n", when, standby);
-            last_standby = standby;
-        }
         uint8_t state[INDICATOR_STATE_SIZE];
         if (indicator_read(state) && memcmp(state, last, sizeof(state)) != 0) {
             memcpy(last, state, sizeof(state));
@@ -89,6 +82,13 @@ static void *trace_led(void *unused) {
 }
 #endif
 
+/* SIGCONT on waking from rest mode: ps5-payload-manager reopens its socket on it. Not seen here yet; the clock jump
+ * in http_serve covers a wake without it. */
+static void on_resume(int number) {
+    (void)number;
+    http_reopen();
+}
+
 static void on_signal(int number) {
     (void)number;
     player_stop();
@@ -100,6 +100,7 @@ int main(void) {
     signal(SIGTERM, on_signal);
     signal(SIGINT, on_signal);
     signal(SIGPIPE, SIG_IGN);
+    signal(SIGCONT, on_resume);
 #if defined(SIGNAL_DEV)
     bool any_address = true;
 #else
@@ -120,6 +121,6 @@ int main(void) {
     pthread_create(&tracer, NULL, trace_led, NULL);
     pthread_detach(tracer);
 #endif
-    http_serve(server);
+    http_serve(server, SIGNAL_PORT, any_address);
     return 0;
 }

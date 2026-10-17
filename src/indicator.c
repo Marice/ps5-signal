@@ -137,3 +137,10 @@ bool indicator_shows(int blue, int white, int amber) {
     /* A channel without a record can't differ. */
     return (b < 0 || b == blue) && (w < 0 || w == white) && (a < 0 || a == amber);
 }
+
+bool indicator_rest_program(const uint8_t state[INDICATOR_STATE_SIZE]) {
+    for (int at = 4; at + 42 <= INDICATOR_STATE_SIZE; at += 42) {
+        if (state[at] == 0x10 && state[at + 1] > 1) return true;
+    }
+    return false;
+}

@@ -24,5 +24,8 @@ bool indicator_enable(bool on);
 bool indicator_set_color(int blue, int white, int amber);
 /* Whether the LED shows these levels now (the system may take the LED back). */
 bool indicator_shows(int blue, int white, int amber);
+/* True when the state is the system's rest-mode program: the white block as an animation (id 0x10), which the
+ * system writes as the console starts going to rest ("White Blink"). Observed on one console, firmware 13.60. */
+bool indicator_rest_program(const uint8_t state[INDICATOR_STATE_SIZE]);
 /* The current levels, or -1 each when they can't be read. */
 void indicator_levels(int *blue, int *white, int *amber);

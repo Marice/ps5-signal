@@ -46,6 +46,7 @@ bool indicator_shows(int blue, int white, int amber) {
     return channels[0] == blue && channels[1] == white && channels[2] == amber;
 }
 void indicator_levels(int *blue, int *white, int *amber) { *blue = channels[0]; *white = channels[1]; *amber = channels[2]; }
+bool indicator_rest_program(const uint8_t state[INDICATOR_STATE_SIZE]) { (void)state; return false; }
 
 /* The sensors: FAKE_TEMPERATURE in the environment, 50 C otherwise. */
 #include <stdlib.h>

@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 
 /* Starts the startup sequences and holds the LED colour config.json asks for. A config that isn't valid is left
@@ -27,6 +28,66 @@ static void apply_config(void) {
     /* After the startup light: it shows first, then the temperature. */
     if (settings.temperature) player_temperature(true, settings.cool, settings.warm);
 }
+
+#if defined(SIGNAL_DEV)
+/* Development build: every change of the LED state, with the time, standby flag and clock jumps, written to
+ * led-trace.log, to learn the system's programs around rest mode. */
+#include <pthread.h>
+#include <string.h>
+#include <time.h>
+
+extern int sceKernelIsMainOnStandbyMode(void);
+
+static void *trace_led(void *unused) {
+    (void)unused;
+    FILE *trace = fopen(CONFIG_DIRECTORY "/led-trace.log", "a");
+    if (trace == NULL) return NULL;
+    uint8_t last[INDICATOR_STATE_SIZE] = { 0 };
+    struct timespec previous_real, previous_mono;
+    clock_gettime(CLOCK_REALTIME, &previous_real);
+    clock_gettime(CLOCK_MONOTONIC, &previous_mono);
+    int last_standby = -2;
+    fprintf(trace, "--- trace started\n");
+    fflush(trace);
+    for (;;) {
+        usleep(250 * 1000);
+        struct timespec real, mono;
+        clock_gettime(CLOCK_REALTIME, &real);
+        clock_gettime(CLOCK_MONOTONIC, &mono);
+        double real_gap = (real.tv_sec - previous_real.tv_sec) + (real.tv_nsec - previous_real.tv_nsec) / 1e9;
+        double mono_gap = (mono.tv_sec - previous_mono.tv_sec) + (mono.tv_nsec - previous_mono.tv_nsec) / 1e9;
+        previous_real = real;
+        previous_mono = mono;
+        struct tm local;
+        localtime_r(&real.tv_sec, &local);
+        char when[32];
+        snprintf(when, sizeof(when), "%02d:%02d:%02d.%03ld", local.tm_hour, local.tm_min, local.tm_sec, real.tv_nsec / 1000000);
+        if (real_gap > 2.0 || mono_gap > 2.0)
+            fprintf(trace, "%s clock gap: real %.1f s, monotonic %.1f s\n", when, real_gap, mono_gap);
+        int standby = sceKernelIsMainOnStandbyMode();
+        if (standby != last_standby) {
+            fprintf(trace, "%s standby flag %d\n", when, standby);
+            last_standby = standby;
+        }
+        uint8_t state[INDICATOR_STATE_SIZE];
+        if (indicator_read(state) && memcmp(state, last, sizeof(state)) != 0) {
+            memcpy(last, state, sizeof(state));
+            fprintf(trace, "%s state", when);
+            /* Header, then each 42-byte channel block up to its last non-zero byte. */
+            fprintf(trace, " %02x%02x%02x%02x", state[0], state[1], state[2], state[3]);
+            for (int block = 4; block + 42 <= INDICATOR_STATE_SIZE; block += 42) {
+                int end = block + 42;
+                while (end > block && state[end - 1] == 0) end--;
+                fprintf(trace, " |");
+                for (int i = block; i < end; i++) fprintf(trace, " %02x", state[i]);
+            }
+            fprintf(trace, "\n");
+        }
+        fflush(trace);
+    }
+    return NULL;
+}
+#endif
 
 static void on_signal(int number) {
     (void)number;
@@ -54,6 +115,11 @@ int main(void) {
     indicator_init();
     player_start();
     apply_config();
+#if defined(SIGNAL_DEV)
+    pthread_t tracer;
+    pthread_create(&tracer, NULL, trace_led, NULL);
+    pthread_detach(tracer);
+#endif
     http_serve(server);
     return 0;
 }

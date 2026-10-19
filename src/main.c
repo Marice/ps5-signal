@@ -100,7 +100,13 @@ static void on_signal(int number) {
     _exit(0);
 }
 
+/* In libkernel. The ELF loader names a payload sent to it "payload.elf"; this name is what process lists
+ * (pldmgr, PayLoader) show instead. At most 19 characters, ending in ".elf" so they count it as a payload.
+ * (A process name, not a thread name: naming threads with pthread_setname_np hangs on the console.) */
+int sceKernelSetProcessName(const char *name);
+
 int main(void) {
+    sceKernelSetProcessName("ps5-signal.elf");
     signal(SIGTERM, on_signal);
     signal(SIGINT, on_signal);
     signal(SIGPIPE, SIG_IGN);

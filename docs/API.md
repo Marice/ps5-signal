@@ -141,7 +141,7 @@ Or ask `GET /status` and check for `200`. The answer also says what this console
 
 ```json
 {
-  "service": "ps5-signal", "version": "0.2.0",
+  "service": "ps5-signal", "version": "0.2.1",
   "beep": { "playing": false, "muted": false, "volume": 2 },
   "led": {
     "playing": false, "available": true, "level": null,
